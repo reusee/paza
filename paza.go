@@ -12,10 +12,14 @@ var (
 	pt = fmt.Printf
 )
 
+type parserInfo struct {
+	parser    Parser
+	recursive bool
+}
+
 type Set struct {
-	parsers   map[string]Parser
-	recursive map[string]bool
-	serial    uint64
+	parsers map[string]parserInfo
+	serial  uint64
 }
 
 type Parser func(input *Input, start int) (ok bool, n int)
@@ -40,18 +44,16 @@ func NewInput(text []byte) *Input {
 
 func NewSet() *Set {
 	return &Set{
-		parsers:   make(map[string]Parser),
-		recursive: make(map[string]bool),
+		parsers: make(map[string]parserInfo),
 	}
 }
 
 func (s *Set) Add(name string, parser Parser) {
-	s.parsers[name] = parser
+	s.parsers[name] = parserInfo{parser, false}
 }
 
 func (s *Set) AddRec(name string, parser Parser) {
-	s.parsers[name] = parser
-	s.recursive[name] = true
+	s.parsers[name] = parserInfo{parser, true}
 }
 
 func (s *Set) Regex(re string) Parser {
@@ -78,14 +80,14 @@ func (s *Set) Rune(r rune) Parser {
 }
 
 func (s *Set) Call(name string, input *Input, start int) (bool, int) {
-	fn, ok := s.parsers[name]
+	info, ok := s.parsers[name]
 	if !ok {
 		panic("parser not found " + name)
 	}
 
 	// non recursive parser
-	if _, ok := s.recursive[name]; !ok {
-		return fn(input, start)
+	if !info.recursive {
+		return info.parser(input, start)
 	}
 
 	// search stack
@@ -96,28 +98,29 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 		}
 	}
 	// not found, append a new entry
-	entry := stackEntry{
+	input.stack = append(input.stack, stackEntry{
 		parser: name,
 		start:  start,
 		ok:     false,
 		length: 0,
-	}
-	input.stack = append(input.stack, entry)
+	})
 	// find the right bound
+	lastOk := false
+	lastLen := 0
 	for {
 		stackSize := len(input.stack) // save stack size
-		ok, l := fn(input, start)
+		ok, l := info.parser(input, start)
 		input.stack = input.stack[:stackSize] // unwind stack
 		if !ok {
 			return false, 0
 		}
-		if l < entry.length { // over bound
-			return entry.ok, entry.length
-		} else if l == entry.length { // not extending
+		if l < lastLen { // over bound
+			return lastOk, lastLen
+		} else if l == lastLen { // not extending
 			return ok, l
 		}
-		entry.ok = ok
-		entry.length = l
+		lastOk = ok
+		lastLen = l
 		// update stack
 		for i := len(input.stack) - 1; i >= 0; i-- {
 			e := input.stack[i]
