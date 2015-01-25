@@ -107,8 +107,8 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 	// find the right bound
 	lastOk := false
 	lastLen := 0
+	stackSize := len(input.stack) // save stack size
 	for {
-		stackSize := len(input.stack) // save stack size
 		ok, l := info.parser(input, start)
 		input.stack = input.stack[:stackSize] // unwind stack
 		if !ok {
