@@ -41,3 +41,49 @@ func TestAll(t *testing.T) {
 		}
 	}
 }
+
+func TestCalc(t *testing.T) {
+	set := NewSet()
+	set.AddRec("expr", set.OrdChoice(
+		set.Concat("expr", set.Rune('+'), "term"),
+		set.Concat("expr", set.Rune('-'), "term"),
+		"term",
+	))
+	set.AddRec("term", set.OrdChoice(
+		set.Concat("term", set.Rune('*'), "factor"),
+		set.Concat("term", set.Rune('/'), "factor"),
+		"factor",
+	))
+	set.Add("factor", set.OrdChoice(
+		set.Regex(`[0-9]+`),
+		set.Concat(set.Rune('('), "expr", set.Rune(')')),
+	))
+
+	cases := []struct {
+		text   []byte
+		parser string
+		ok     bool
+		length int
+	}{
+		{[]byte("1"), "expr", true, 1},
+		{[]byte("1+1"), "expr", true, 3},
+		{[]byte("1-1"), "expr", true, 3},
+		{[]byte("1*1"), "expr", true, 3},
+		{[]byte("1/1"), "expr", true, 3},
+		{[]byte("(1/1)"), "expr", true, 5},
+		{[]byte("(1)/1"), "expr", true, 5},
+		{[]byte("(1)/1*3"), "expr", true, 7},
+		{[]byte("(1)/1*(3-2)"), "expr", true, 11},
+		{[]byte("(1)/1**(3-2)"), "expr", true, 5},
+		{[]byte("*(1)/1**(3-2)"), "expr", false, 0},
+		{[]byte(""), "expr", false, 0},
+	}
+
+	for _, c := range cases {
+		input := NewInput(c.text)
+		ok, l := set.Call(c.parser, input, 0)
+		if c.ok != ok || c.length != l {
+			t.Fatalf("%v", c)
+		}
+	}
+}

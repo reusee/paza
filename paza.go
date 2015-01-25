@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"sync/atomic"
+	"unicode/utf8"
 )
 
 var (
@@ -64,6 +65,19 @@ func (s *Set) Regex(re string) Parser {
 			return true, loc[1]
 		}
 		return false, 0
+	}
+}
+
+func (s *Set) Rune(r rune) Parser {
+	return func(input *Input, start int) (bool, int) {
+		ru, l := utf8.DecodeRune(input.text[start:])
+		if ru == utf8.RuneError {
+			return false, 0
+		}
+		if ru != r {
+			return false, 0
+		}
+		return true, l
 	}
 }
 
