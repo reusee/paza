@@ -20,25 +20,21 @@ type Set struct {
 
 type Parser func(input *Input, start int) (ok bool, n int)
 
-type memoryKey struct {
+type stackEntry struct {
 	parser string
 	start  int
-}
-
-type memoryValue struct {
 	ok     bool
 	length int
 }
 
 type Input struct {
-	text   []byte
-	memory map[memoryKey]memoryValue
+	text  []byte
+	stack []stackEntry
 }
 
 func NewInput(text []byte) *Input {
 	return &Input{
-		text:   text,
-		memory: make(map[memoryKey]memoryValue),
+		text: text,
 	}
 }
 
@@ -92,33 +88,43 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 		return fn(input, start)
 	}
 
-	// recursive parser
-	key := memoryKey{name, start}
-	memo, ok := input.memory[key]
-	if !ok { // first call
-		mem := memoryValue{ // 0-bound, always fail
-			ok:     false,
-			length: 0,
+	// search stack
+	for i := len(input.stack) - 1; i >= 0; i-- {
+		mem := input.stack[i]
+		if mem.parser == name && mem.start == start { // found
+			return mem.ok, mem.length
 		}
-		input.memory[key] = mem
-		for {
-			ok, l := fn(input, start) // try to increase bound
-			if !ok {
-				return false, 0
-			}
-			if l < mem.length { // use last bound
-				return mem.ok, mem.length
-			} else if l == mem.length { // not extending
-				return ok, l
-			}
-			mem = memoryValue{ // update
-				ok:     ok,
-				length: l,
-			}
-			input.memory[key] = mem
+	}
+	// not found, append a new entry
+	entry := stackEntry{
+		parser: name,
+		start:  start,
+		ok:     false,
+		length: 0,
+	}
+	input.stack = append(input.stack, entry)
+	for { // find the right bound
+		stackSize := len(input.stack) // save stack size
+		ok, l := fn(input, start)
+		input.stack = input.stack[:stackSize] // unwind stack
+		if !ok {
+			return false, 0
 		}
-	} else { // not first call, return memory
-		return memo.ok, memo.length
+		if l < entry.length { // over bound
+			return entry.ok, entry.length
+		} else if l == entry.length { // not extending
+			return ok, l
+		}
+		entry.ok = ok
+		entry.length = l
+		// update stack
+		for i := len(input.stack) - 1; i >= 0; i-- {
+			e := input.stack[i]
+			if e.parser == name && e.start == start {
+				input.stack[i].ok = ok
+				input.stack[i].length = l
+			}
+		}
 	}
 }
 

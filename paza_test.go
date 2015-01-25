@@ -140,3 +140,37 @@ func TestRegex(t *testing.T) {
 		}
 	}
 }
+
+func TestIndirect(t *testing.T) {
+	/*
+		L = P.x | x
+		P = P(n) | L
+	*/
+	set := NewSet()
+	set.AddRec("L", set.OrdChoice(
+		set.Concat("P", set.Rune('.'), set.Rune('x')),
+		set.Rune('x'),
+	))
+	set.AddRec("P", set.OrdChoice(
+		set.Concat("P", set.Rune('('), set.Rune('n'), set.Rune(')')),
+		"L",
+	))
+
+	cases := []struct {
+		text   []byte
+		parser string
+		ok     bool
+		length int
+	}{
+		{[]byte("x"), "L", true, 1},
+		{[]byte("x(n)(n).x(n).x"), "L", true, 14},
+	}
+
+	for _, c := range cases {
+		input := NewInput(c.text)
+		ok, l := set.Call(c.parser, input, 0)
+		if c.ok != ok || c.length != l {
+			t.Fatalf("%v %v %d", c, ok, l)
+		}
+	}
+}
