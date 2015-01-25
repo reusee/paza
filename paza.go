@@ -57,14 +57,14 @@ func (s *Set) AddRec(name string, parser Parser) {
 	s.recursive[name] = true
 }
 
-func (s *Set) AddRegex(name, re string) {
+func (s *Set) Regex(re string) Parser {
 	regex := regexp.MustCompile(re)
-	s.Add(name, func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int) {
 		if loc := regex.FindIndex(input.text[start:]); loc != nil && loc[0] == 0 {
 			return true, loc[1]
 		}
 		return false, 0
-	})
+	}
 }
 
 func (s *Set) Call(name string, input *Input, start int) (bool, int) {

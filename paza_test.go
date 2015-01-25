@@ -4,8 +4,8 @@ import "testing"
 
 func TestAll(t *testing.T) {
 	set := NewSet()
-	set.AddRegex("a", `a`)
-	set.AddRegex("+", `\+`)
+	set.Add("a", set.Regex(`a`))
+	set.Add("+", set.Regex(`\+`))
 	// direct recursive
 	set.AddRec("expr", set.OrdChoice(set.Concat("expr", "+", "a"), "a"))
 	// TODO indirect recursive
