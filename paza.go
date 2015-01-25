@@ -103,7 +103,8 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 		length: 0,
 	}
 	input.stack = append(input.stack, entry)
-	for { // find the right bound
+	// find the right bound
+	for {
 		stackSize := len(input.stack) // save stack size
 		ok, l := fn(input, start)
 		input.stack = input.stack[:stackSize] // unwind stack
@@ -123,9 +124,11 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 			if e.parser == name && e.start == start {
 				input.stack[i].ok = ok
 				input.stack[i].length = l
+				break
 			}
 		}
 	}
+
 }
 
 func (s *Set) getNames(parsers []interface{}) (ret []string) {

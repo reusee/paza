@@ -174,3 +174,52 @@ func TestIndirect(t *testing.T) {
 		}
 	}
 }
+
+func TestIndirect2(t *testing.T) {
+	/*
+		A = Ba | d
+		B = Cb | e
+		C = Ac | f
+	*/
+	set := NewSet()
+	set.AddRec("A", set.OrdChoice(
+		set.Concat("B", set.Rune('a')),
+		set.Rune('d'),
+	))
+	set.AddRec("B", set.OrdChoice(
+		set.Concat("C", set.Rune('b')),
+		set.Rune('e'),
+	))
+	set.AddRec("C", set.OrdChoice(
+		set.Concat("A", set.Rune('c')),
+		set.Rune('f'),
+	))
+
+	cases := []struct {
+		text   []byte
+		parser string
+		ok     bool
+		length int
+	}{
+		{[]byte("d"), "A", true, 1},
+		{[]byte("e"), "B", true, 1},
+		{[]byte("f"), "C", true, 1},
+		{[]byte("ea"), "A", true, 2},
+		{[]byte("fb"), "B", true, 2},
+		{[]byte("dc"), "C", true, 2},
+		{[]byte("fba"), "A", true, 3},
+		{[]byte("dcb"), "B", true, 3},
+		{[]byte("eac"), "C", true, 3},
+		{[]byte("dcba"), "A", true, 4},
+		{[]byte("eacb"), "B", true, 4},
+		{[]byte("fbac"), "C", true, 4},
+	}
+
+	for _, c := range cases {
+		input := NewInput(c.text)
+		ok, l := set.Call(c.parser, input, 0)
+		if c.ok != ok || c.length != l {
+			t.Fatalf("%v %v %d", c, ok, l)
+		}
+	}
+}
