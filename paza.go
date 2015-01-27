@@ -176,3 +176,53 @@ func (s *Set) OrdChoice(parsers ...interface{}) Parser {
 		return false, 0
 	}
 }
+
+func (s *Set) ByteIn(bs []byte) Parser {
+	return func(input *Input, start int) (bool, int) {
+		if start >= len(input.text) {
+			return false, 0
+		}
+		b := input.text[start]
+		for _, bt := range bs {
+			if bt == b {
+				return true, 1
+			}
+		}
+		return false, 0
+	}
+}
+
+func (s *Set) ByteRange(left, right byte) Parser {
+	return func(input *Input, start int) (bool, int) {
+		if start >= len(input.text) {
+			return false, 0
+		}
+		b := input.text[start]
+		if b >= left && b <= right {
+			return true, 1
+		}
+		return false, 0
+	}
+}
+
+func (s *Set) OneOrMore(parser interface{}) Parser {
+	names := s.getNames([]interface{}{parser})
+	name := names[0]
+	return func(input *Input, start int) (bool, int) {
+		index := start
+		ok, l := s.Call(name, input, index)
+		if !ok {
+			return false, 0
+		}
+		index += l
+		for {
+			ok, l = s.Call(name, input, index)
+			if ok {
+				index += l
+			} else {
+				break
+			}
+		}
+		return true, index - start
+	}
+}
