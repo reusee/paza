@@ -1,6 +1,9 @@
 package paza
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 type testCase struct {
 	text   []byte
@@ -46,6 +49,11 @@ func TestAll(t *testing.T) {
 }
 
 func TestCalc(t *testing.T) {
+	/*
+		expr = expr (+ | -) term | term
+		term = term (* / /) factor | factor
+		factor = [0-9]+ | '(' expr ')'
+	*/
 	set := NewSet()
 	set.AddRec("expr", set.OrdChoice(
 		set.Concat("expr", set.Rune('+'), "term"),
@@ -254,4 +262,80 @@ func TestOneOrMore(t *testing.T) {
 		{[]byte("aaabb"), "foo", true, 3},
 	}
 	test(t, set, cases)
+}
+
+func TestAST(t *testing.T) {
+	/*
+		expr = expr (+ | -) term | term
+		term = term (* / /) factor | factor
+		factor = [0-9]+ | '(' expr ')'
+	*/
+	set := NewSet()
+	set.AddRec("expr", set.OrdChoice(
+		set.NamedConcat("plus-expr", "expr", set.NamedRune("plus-op", '+'), "term"),
+		set.NamedConcat("minus-expr", "expr", set.NamedRune("minus-op", '-'), "term"),
+		"term",
+	))
+	set.AddRec("term", set.OrdChoice(
+		set.NamedConcat("mul-expr", "term", set.NamedRune("mul-op", '*'), "factor"),
+		set.NamedConcat("div-expr", "term", set.NamedRune("div-op", '/'), "factor"),
+		"factor",
+	))
+	set.Add("factor", set.OrdChoice(
+		set.NamedRegex("digit", `[0-9]+`),
+		set.NamedConcat("quoted", set.NamedRune("left-quote", '('), "expr", set.NamedRune("right-quote", ')')),
+	))
+
+	type Node struct {
+		Name       string
+		Start      int
+		Len        int
+		Derivation []*Node
+	}
+	root := &Node{
+		Name: "__root_,",
+	}
+	current := root
+	var upward, fail func()
+	set.SetEnter(func(name string, input *Input, start int) {
+		node := &Node{
+			Name:  name,
+			Start: start,
+		}
+		current.Derivation = append(current.Derivation, node)
+		upNode := current
+		current = node
+		upUpward := upward
+		upFail := fail
+		upward = func() {
+			current = upNode
+			upward = upUpward
+			fail = upFail
+		}
+		fail = func() {
+			upNode.Derivation = upNode.Derivation[:len(upNode.Derivation)-1]
+			upward()
+		}
+	})
+	set.SetLeave(func(name string, input *Input, start int, ok bool, length int) {
+		if !ok {
+			fail()
+			return
+		}
+		current.Len = length
+		upward()
+	})
+	var dump func([]byte, *Node, int)
+	dump = func(text []byte, node *Node, level int) {
+		start := node.Start
+		end := node.Start + node.Len
+		pt("%s%q %s %d-%d\n", strings.Repeat("  ", level), text[start:end], node.Name, start, end)
+		for _, n := range node.Derivation {
+			dump(text, n, level+1)
+		}
+	}
+
+	text := []byte("1")
+	set.Call("expr", NewInput(text), 0)
+	dump(text, root, 0)
 }

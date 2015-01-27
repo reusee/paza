@@ -2,10 +2,8 @@ package paza
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"sync/atomic"
-	"unicode/utf8"
 )
 
 var (
@@ -20,6 +18,8 @@ type parserInfo struct {
 type Set struct {
 	parsers map[string]parserInfo
 	serial  uint64
+	enter   func(name string, input *Input, start int)
+	leave   func(name string, input *Input, start int, ok bool, length int)
 }
 
 type Parser func(input *Input, start int) (ok bool, n int)
@@ -32,13 +32,13 @@ type stackEntry struct {
 }
 
 type Input struct {
-	text  []byte
+	Text  []byte
 	stack []stackEntry
 }
 
 func NewInput(text []byte) *Input {
 	return &Input{
-		text: text,
+		Text: text,
 	}
 }
 
@@ -46,6 +46,14 @@ func NewSet() *Set {
 	return &Set{
 		parsers: make(map[string]parserInfo),
 	}
+}
+
+func (s *Set) SetEnter(fn func(string, *Input, int)) {
+	s.enter = fn
+}
+
+func (s *Set) SetLeave(fn func(string, *Input, int, bool, int)) {
+	s.leave = fn
 }
 
 func (s *Set) Add(name string, parser Parser) {
@@ -56,31 +64,15 @@ func (s *Set) AddRec(name string, parser Parser) {
 	s.parsers[name] = parserInfo{parser, true}
 }
 
-func (s *Set) Regex(re string) Parser {
-	regex := regexp.MustCompile(re)
-	return func(input *Input, start int) (bool, int) {
-		if loc := regex.FindIndex(input.text[start:]); loc != nil && loc[0] == 0 {
-			return true, loc[1]
-		}
-		return false, 0
-	}
-}
+func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int) {
+	/* TODO
+	pt("=> call %s %d\n", name, start)
+	defer func() {
+		pt("<- result %s %d %v %d\n", name, start, retOk, retLen)
+	}()
+	*/
 
-func (s *Set) Rune(r rune) Parser {
-	return func(input *Input, start int) (bool, int) {
-		ru, l := utf8.DecodeRune(input.text[start:])
-		if ru == utf8.RuneError {
-			panic("utf8 decode error")
-		}
-		if ru != r {
-			return false, 0
-		}
-		return true, l
-	}
-}
-
-func (s *Set) Call(name string, input *Input, start int) (bool, int) {
-	if start >= len(input.text) {
+	if start >= len(input.Text) {
 		return false, 0
 	}
 	info, ok := s.parsers[name]
@@ -90,6 +82,14 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 
 	// non recursive parser
 	if !info.recursive {
+		if s.enter != nil {
+			s.enter(name, input, start)
+		}
+		defer func() {
+			if s.leave != nil {
+				s.leave(name, input, start, retOk, retLen)
+			}
+		}()
 		return info.parser(input, start)
 	}
 
@@ -107,6 +107,14 @@ func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 		ok:     false,
 		length: 0,
 	})
+	if s.enter != nil {
+		s.enter(name, input, start)
+	}
+	defer func() {
+		if s.leave != nil {
+			s.leave(name, input, start, retOk, retLen)
+		}
+	}()
 	// find the right bound
 	lastOk := false
 	lastLen := 0
@@ -151,75 +159,4 @@ func (s *Set) getNames(parsers []interface{}) (ret []string) {
 		}
 	}
 	return
-}
-
-func (s *Set) Concat(parsers ...interface{}) Parser {
-	names := s.getNames(parsers)
-	return func(input *Input, start int) (bool, int) {
-		index := start
-		for _, name := range names {
-			if ok, l := s.Call(name, input, index); !ok {
-				return false, 0
-			} else {
-				index += l
-			}
-		}
-		return true, index - start
-	}
-}
-
-func (s *Set) OrdChoice(parsers ...interface{}) Parser {
-	names := s.getNames(parsers)
-	return func(input *Input, start int) (bool, int) {
-		for _, name := range names {
-			if ok, l := s.Call(name, input, start); ok {
-				return ok, l
-			}
-		}
-		return false, 0
-	}
-}
-
-func (s *Set) ByteIn(bs []byte) Parser {
-	return func(input *Input, start int) (bool, int) {
-		b := input.text[start]
-		for _, bt := range bs {
-			if bt == b {
-				return true, 1
-			}
-		}
-		return false, 0
-	}
-}
-
-func (s *Set) ByteRange(left, right byte) Parser {
-	return func(input *Input, start int) (bool, int) {
-		b := input.text[start]
-		if b >= left && b <= right {
-			return true, 1
-		}
-		return false, 0
-	}
-}
-
-func (s *Set) OneOrMore(parser interface{}) Parser {
-	names := s.getNames([]interface{}{parser})
-	name := names[0]
-	return func(input *Input, start int) (bool, int) {
-		index := start
-		ok, l := s.Call(name, input, index)
-		if !ok {
-			return false, 0
-		}
-		index += l
-		for {
-			ok, l = s.Call(name, input, index)
-			if ok {
-				index += l
-			} else {
-				break
-			}
-		}
-		return true, index - start
-	}
 }
