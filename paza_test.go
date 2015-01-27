@@ -2,18 +2,30 @@ package paza
 
 import "testing"
 
+type testCase struct {
+	text   []byte
+	parser string
+	ok     bool
+	length int
+}
+
+func test(t *testing.T, set *Set, cases []testCase) {
+	for _, c := range cases {
+		input := NewInput(c.text)
+		ok, l := set.Call(c.parser, input, 0)
+		if c.ok != ok || c.length != l {
+			t.Fatalf("%v", c)
+		}
+	}
+}
+
 func TestAll(t *testing.T) {
 	set := NewSet()
 	set.Add("a", set.Regex(`a`))
 	set.Add("+", set.Regex(`\+`))
 	set.AddRec("expr", set.OrdChoice(set.Concat("expr", "+", "a"), "a"))
 
-	cases := []struct {
-		text   []byte
-		parser string
-		ok     bool
-		length int
-	}{
+	cases := []testCase{
 		{[]byte(""), "a", false, 0},
 		{[]byte(""), "+", false, 0},
 		{[]byte(""), "expr", false, 0},
@@ -30,14 +42,7 @@ func TestAll(t *testing.T) {
 		{[]byte("a+a+a+a+a+"), "expr", true, 9},
 		{[]byte("a+a+a+a+a+a"), "expr", true, 11},
 	}
-
-	for _, c := range cases {
-		input := NewInput(c.text)
-		ok, l := set.Call(c.parser, input, 0)
-		if c.ok != ok || c.length != l {
-			t.Fatalf("%v", c)
-		}
-	}
+	test(t, set, cases)
 }
 
 func TestCalc(t *testing.T) {
@@ -57,12 +62,7 @@ func TestCalc(t *testing.T) {
 		set.Concat(set.Rune('('), "expr", set.Rune(')')),
 	))
 
-	cases := []struct {
-		text   []byte
-		parser string
-		ok     bool
-		length int
-	}{
+	cases := []testCase{
 		{[]byte("1"), "expr", true, 1},
 		{[]byte("1+1"), "expr", true, 3},
 		{[]byte("1-1"), "expr", true, 3},
@@ -76,14 +76,7 @@ func TestCalc(t *testing.T) {
 		{[]byte("*(1)/1**(3-2)"), "expr", false, 0},
 		{[]byte(""), "expr", false, 0},
 	}
-
-	for _, c := range cases {
-		input := NewInput(c.text)
-		ok, l := set.Call(c.parser, input, 0)
-		if c.ok != ok || c.length != l {
-			t.Fatalf("%v", c)
-		}
-	}
+	test(t, set, cases)
 }
 
 func TestRegex(t *testing.T) {
@@ -114,12 +107,7 @@ func TestRegex(t *testing.T) {
 		set.Regex(`[a-zA-Z0-9]`),
 	))
 
-	cases := []struct {
-		text   []byte
-		parser string
-		ok     bool
-		length int
-	}{
+	cases := []testCase{
 		{[]byte(""), "re", false, 0},
 		{[]byte("a"), "re", true, 1},
 		{[]byte("a*"), "re", true, 2},
@@ -131,14 +119,7 @@ func TestRegex(t *testing.T) {
 		{[]byte("a(.*)+$|b+"), "re", true, 10},
 		{[]byte("a(.*)+$|*b+"), "re", true, 7},
 	}
-
-	for _, c := range cases {
-		input := NewInput(c.text)
-		ok, l := set.Call(c.parser, input, 0)
-		if c.ok != ok || c.length != l {
-			t.Fatalf("%v", c)
-		}
-	}
+	test(t, set, cases)
 }
 
 func TestIndirect(t *testing.T) {
@@ -156,23 +137,11 @@ func TestIndirect(t *testing.T) {
 		"L",
 	))
 
-	cases := []struct {
-		text   []byte
-		parser string
-		ok     bool
-		length int
-	}{
+	cases := []testCase{
 		{[]byte("x"), "L", true, 1},
 		{[]byte("x(n)(n).x(n).x"), "L", true, 14},
 	}
-
-	for _, c := range cases {
-		input := NewInput(c.text)
-		ok, l := set.Call(c.parser, input, 0)
-		if c.ok != ok || c.length != l {
-			t.Fatalf("%v %v %d", c, ok, l)
-		}
-	}
+	test(t, set, cases)
 }
 
 func TestIndirect2(t *testing.T) {
@@ -195,12 +164,7 @@ func TestIndirect2(t *testing.T) {
 		set.Rune('f'),
 	))
 
-	cases := []struct {
-		text   []byte
-		parser string
-		ok     bool
-		length int
-	}{
+	cases := []testCase{
 		{[]byte("d"), "A", true, 1},
 		{[]byte("e"), "B", true, 1},
 		{[]byte("f"), "C", true, 1},
@@ -214,14 +178,7 @@ func TestIndirect2(t *testing.T) {
 		{[]byte("eacb"), "B", true, 4},
 		{[]byte("fbac"), "C", true, 4},
 	}
-
-	for _, c := range cases {
-		input := NewInput(c.text)
-		ok, l := set.Call(c.parser, input, 0)
-		if c.ok != ok || c.length != l {
-			t.Fatalf("%v %v %d", c, ok, l)
-		}
-	}
+	test(t, set, cases)
 }
 
 func TestPanic(t *testing.T) {
