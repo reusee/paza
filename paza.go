@@ -70,7 +70,7 @@ func (s *Set) Rune(r rune) Parser {
 	return func(input *Input, start int) (bool, int) {
 		ru, l := utf8.DecodeRune(input.text[start:])
 		if ru == utf8.RuneError {
-			return false, 0
+			panic("utf8 decode error")
 		}
 		if ru != r {
 			return false, 0
@@ -80,6 +80,9 @@ func (s *Set) Rune(r rune) Parser {
 }
 
 func (s *Set) Call(name string, input *Input, start int) (bool, int) {
+	if start >= len(input.text) {
+		return false, 0
+	}
 	info, ok := s.parsers[name]
 	if !ok {
 		panic("parser not found: " + name)
@@ -179,9 +182,6 @@ func (s *Set) OrdChoice(parsers ...interface{}) Parser {
 
 func (s *Set) ByteIn(bs []byte) Parser {
 	return func(input *Input, start int) (bool, int) {
-		if start >= len(input.text) {
-			return false, 0
-		}
 		b := input.text[start]
 		for _, bt := range bs {
 			if bt == b {
@@ -194,9 +194,6 @@ func (s *Set) ByteIn(bs []byte) Parser {
 
 func (s *Set) ByteRange(left, right byte) Parser {
 	return func(input *Input, start int) (bool, int) {
-		if start >= len(input.text) {
-			return false, 0
-		}
 		b := input.text[start]
 		if b >= left && b <= right {
 			return true, 1

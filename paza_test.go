@@ -189,7 +189,7 @@ func TestPanic(t *testing.T) {
 				t.Fatal("should panic")
 			}
 		}()
-		set.Call("foo", NewInput(nil), 0)
+		set.Call("foo", NewInput([]byte("FOO")), 0)
 	}()
 
 	func() {
@@ -200,4 +200,58 @@ func TestPanic(t *testing.T) {
 		}()
 		set.OrdChoice(42)
 	}()
+
+	set.Add("rune", set.Rune('a'))
+	func() {
+		defer func() {
+			if p := recover(); p == nil || p.(string) != "utf8 decode error" {
+				t.Fatal("should panic")
+			}
+		}()
+		set.Call("rune", NewInput([]byte("白")[1:]), 0)
+	}()
+}
+
+func TestByteIn(t *testing.T) {
+	set := NewSet()
+	set.Add("foo", set.ByteIn([]byte("qwerty")))
+	if ok, l := set.Call("foo", NewInput([]byte("a")), 0); ok || l != 0 {
+		t.Fatal("fail")
+	}
+	if ok, l := set.Call("foo", NewInput([]byte("q")), 0); !ok || l != 1 {
+		t.Fatal("fail")
+	}
+	if ok, l := set.Call("foo", NewInput([]byte("qa")), 0); !ok || l != 1 {
+		t.Fatal("fail")
+	}
+}
+
+func TestByteRange(t *testing.T) {
+	set := NewSet()
+	set.Add("foo", set.ByteRange('a', 'z'))
+	if ok, l := set.Call("foo", NewInput([]byte("A")), 0); ok || l != 0 {
+		t.Fatal("fail")
+	}
+	if ok, l := set.Call("foo", NewInput([]byte("a")), 0); !ok || l != 1 {
+		t.Fatal("fail")
+	}
+	if ok, l := set.Call("foo", NewInput([]byte("aA")), 0); !ok || l != 1 {
+		t.Fatal("fail")
+	}
+}
+
+func TestOneOrMore(t *testing.T) {
+	set := NewSet()
+	set.Add("foo", set.OneOrMore(set.Rune('a')))
+	cases := []testCase{
+		{[]byte(""), "foo", false, 0},
+		{[]byte("b"), "foo", false, 0},
+		{[]byte("bb"), "foo", false, 0},
+		{[]byte("a"), "foo", true, 1},
+		{[]byte("aa"), "foo", true, 2},
+		{[]byte("aaa"), "foo", true, 3},
+		{[]byte("aaab"), "foo", true, 3},
+		{[]byte("aaabb"), "foo", true, 3},
+	}
+	test(t, set, cases)
 }
