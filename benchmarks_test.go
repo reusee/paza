@@ -15,7 +15,7 @@ func BenchmarkRecursive(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		input := NewInput([]byte("foo+bar-baz*qux/quux"))
-		ok, _ := set.Call("expr", input, 0)
+		ok, _, _ := set.Call("expr", input, 0)
 		if !ok {
 			b.Fatal("fail")
 		}
@@ -28,7 +28,7 @@ func BenchmarkNonRecursive(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		input := NewInput([]byte(`foofoofoo`))
-		ok, _ := set.Call("foo", input, 0)
+		ok, _, _ := set.Call("foo", input, 0)
 		if !ok {
 			b.Fatal("fail")
 		}

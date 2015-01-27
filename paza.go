@@ -3,6 +3,7 @@ package paza
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync/atomic"
 )
 
@@ -20,13 +21,21 @@ type Set struct {
 	serial  uint64
 }
 
-type Parser func(input *Input, start int) (ok bool, n int)
+type Node struct {
+	Name  string
+	Start int
+	Len   int
+	Subs  []*Node
+}
+
+type Parser func(input *Input, start int) (ok bool, n int, node *Node)
 
 type stackEntry struct {
 	parser string
 	start  int
 	ok     bool
 	length int
+	node   *Node
 }
 
 type Input struct {
@@ -54,21 +63,20 @@ func (s *Set) AddRec(name string, parser Parser) {
 	s.parsers[name] = parserInfo{parser, true}
 }
 
-func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int) {
-	/* TODO
-	pt("=> call %s %d\n", name, start)
-	defer func() {
-		pt("<- result %s %d %v %d\n", name, start, retOk, retLen)
-	}()
-	*/
-
+func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int, retNode *Node) {
 	if start >= len(input.Text) {
-		return false, 0
+		return false, 0, nil
 	}
 	info, ok := s.parsers[name]
 	if !ok {
 		panic("parser not found: " + name)
 	}
+
+	defer func() {
+		if retNode != nil {
+			retNode.Name = name
+		}
+	}()
 
 	// non recursive parser
 	if !info.recursive {
@@ -79,7 +87,7 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 	for i := len(input.stack) - 1; i >= 0; i-- {
 		mem := input.stack[i]
 		if mem.parser == name && mem.start == start { // found
-			return mem.ok, mem.length
+			return mem.ok, mem.length, mem.node
 		}
 	}
 	// not found, append a new entry
@@ -88,30 +96,34 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 		start:  start,
 		ok:     false,
 		length: 0,
+		node:   nil,
 	})
 	// find the right bound
 	lastOk := false
 	lastLen := 0
+	var lastNode *Node
 	stackSize := len(input.stack) // save stack size
 	for {
-		ok, l := info.parser(input, start)
+		ok, l, node := info.parser(input, start)
 		input.stack = input.stack[:stackSize] // unwind stack
 		if !ok {
-			return false, 0
+			return false, 0, nil
 		}
 		if l < lastLen { // over bound
-			return lastOk, lastLen
+			return lastOk, lastLen, lastNode
 		} else if l == lastLen { // not extending
-			return ok, l
+			return ok, l, node
 		}
 		lastOk = ok
 		lastLen = l
+		lastNode = node
 		// update stack
 		for i := len(input.stack) - 1; i >= 0; i-- {
 			e := input.stack[i]
 			if e.parser == name && e.start == start {
 				input.stack[i].ok = ok
 				input.stack[i].length = l
+				input.stack[i].node = node
 				break
 			}
 		}
@@ -133,4 +145,13 @@ func (s *Set) getNames(parsers []interface{}) (ret []string) {
 		}
 	}
 	return
+}
+
+func (n *Node) dump(input *Input, level int) {
+	start := n.Start
+	end := n.Start + n.Len
+	pt("%s%q %s %d-%d\n", strings.Repeat("  ", level), input.Text[start:end], n.Name, start, end)
+	for _, sub := range n.Subs {
+		sub.dump(input, level+1)
+	}
 }

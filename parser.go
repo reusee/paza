@@ -7,11 +7,14 @@ import (
 
 func (s *Set) Regex(re string) Parser {
 	regex := regexp.MustCompile(re)
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		if loc := regex.FindIndex(input.Text[start:]); loc != nil && loc[0] == 0 {
-			return true, loc[1]
+			return true, loc[1], &Node{
+				Start: start,
+				Len:   loc[1],
+			}
 		}
-		return false, 0
+		return false, 0, nil
 	}
 }
 
@@ -21,15 +24,18 @@ func (s *Set) NamedRegex(name string, re string) string {
 }
 
 func (s *Set) Rune(r rune) Parser {
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		ru, l := utf8.DecodeRune(input.Text[start:])
 		if ru == utf8.RuneError {
 			panic("utf8 decode error")
 		}
 		if ru != r {
-			return false, 0
+			return false, 0, nil
 		}
-		return true, l
+		return true, l, &Node{
+			Start: start,
+			Len:   l,
+		}
 	}
 }
 
@@ -39,14 +45,17 @@ func (s *Set) NamedRune(name string, r rune) string {
 }
 
 func (s *Set) ByteIn(bs []byte) Parser {
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		b := input.Text[start]
 		for _, bt := range bs {
 			if bt == b {
-				return true, 1
+				return true, 1, &Node{
+					Start: start,
+					Len:   1,
+				}
 			}
 		}
-		return false, 0
+		return false, 0, nil
 	}
 }
 
@@ -56,12 +65,15 @@ func (s *Set) NamedByteIn(name string, bs []byte) string {
 }
 
 func (s *Set) ByteRange(left, right byte) Parser {
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		b := input.Text[start]
 		if b >= left && b <= right {
-			return true, 1
+			return true, 1, &Node{
+				Start: start,
+				Len:   1,
+			}
 		}
-		return false, 0
+		return false, 0, nil
 	}
 }
 
@@ -72,16 +84,22 @@ func (s *Set) NamedByteRange(name string, left, right byte) string {
 
 func (s *Set) Concat(parsers ...interface{}) Parser {
 	names := s.getNames(parsers)
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		index := start
+		var subs []*Node
 		for _, name := range names {
-			if ok, l := s.Call(name, input, index); !ok {
-				return false, 0
+			if ok, l, node := s.Call(name, input, index); !ok {
+				return false, 0, nil
 			} else {
 				index += l
+				subs = append(subs, node)
 			}
 		}
-		return true, index - start
+		return true, index - start, &Node{
+			Start: start,
+			Len:   index - start,
+			Subs:  subs,
+		}
 	}
 }
 
@@ -92,13 +110,17 @@ func (s *Set) NamedConcat(name string, parsers ...interface{}) string {
 
 func (s *Set) OrdChoice(parsers ...interface{}) Parser {
 	names := s.getNames(parsers)
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		for _, name := range names {
-			if ok, l := s.Call(name, input, start); ok {
-				return ok, l
+			if ok, l, node := s.Call(name, input, start); ok {
+				return ok, l, &Node{
+					Start: start,
+					Len:   l,
+					Subs:  []*Node{node},
+				}
 			}
 		}
-		return false, 0
+		return false, 0, nil
 	}
 }
 
@@ -110,22 +132,29 @@ func (s *Set) NamedOrdChoice(name string, parsers ...interface{}) string {
 func (s *Set) OneOrMore(parser interface{}) Parser {
 	names := s.getNames([]interface{}{parser})
 	name := names[0]
-	return func(input *Input, start int) (bool, int) {
+	return func(input *Input, start int) (bool, int, *Node) {
 		index := start
-		ok, l := s.Call(name, input, index)
+		var subs []*Node
+		ok, l, node := s.Call(name, input, index)
 		if !ok {
-			return false, 0
+			return false, 0, nil
 		}
 		index += l
+		subs = append(subs, node)
 		for {
-			ok, l = s.Call(name, input, index)
+			ok, l, node = s.Call(name, input, index)
 			if ok {
 				index += l
+				subs = append(subs, node)
 			} else {
 				break
 			}
 		}
-		return true, index - start
+		return true, index - start, &Node{
+			Start: start,
+			Len:   index - start,
+			Subs:  subs,
+		}
 	}
 }
 
