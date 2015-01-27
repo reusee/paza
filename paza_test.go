@@ -223,3 +223,24 @@ func TestIndirect2(t *testing.T) {
 		}
 	}
 }
+
+func TestPanic(t *testing.T) {
+	set := NewSet()
+	func() {
+		defer func() {
+			if p := recover(); p == nil || p.(string) != "parser not found: foo" {
+				t.Fatal("should panic")
+			}
+		}()
+		set.Call("foo", NewInput(nil), 0)
+	}()
+
+	func() {
+		defer func() {
+			if p := recover(); p == nil || p.(string) != "unknown parser type: int" {
+				t.Fatal("should panic")
+			}
+		}()
+		set.OrdChoice(42)
+	}()
+}

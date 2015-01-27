@@ -82,7 +82,7 @@ func (s *Set) Rune(r rune) Parser {
 func (s *Set) Call(name string, input *Input, start int) (bool, int) {
 	info, ok := s.parsers[name]
 	if !ok {
-		panic("parser not found " + name)
+		panic("parser not found: " + name)
 	}
 
 	// non recursive parser
@@ -144,7 +144,7 @@ func (s *Set) getNames(parsers []interface{}) (ret []string) {
 			s.Add(name, parser)
 			ret = append(ret, name)
 		default:
-			panic(fmt.Sprintf("unknown parser type %T", parser))
+			panic(fmt.Sprintf("unknown parser type: %T", parser))
 		}
 	}
 	return
