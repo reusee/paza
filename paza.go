@@ -18,8 +18,6 @@ type parserInfo struct {
 type Set struct {
 	parsers map[string]parserInfo
 	serial  uint64
-	enter   func(name string, input *Input, start int)
-	leave   func(name string, input *Input, start int, ok bool, length int)
 }
 
 type Parser func(input *Input, start int) (ok bool, n int)
@@ -48,14 +46,6 @@ func NewSet() *Set {
 	}
 }
 
-func (s *Set) SetEnter(fn func(string, *Input, int)) {
-	s.enter = fn
-}
-
-func (s *Set) SetLeave(fn func(string, *Input, int, bool, int)) {
-	s.leave = fn
-}
-
 func (s *Set) Add(name string, parser Parser) {
 	s.parsers[name] = parserInfo{parser, false}
 }
@@ -82,14 +72,6 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 
 	// non recursive parser
 	if !info.recursive {
-		if s.enter != nil {
-			s.enter(name, input, start)
-		}
-		defer func() {
-			if s.leave != nil {
-				s.leave(name, input, start, retOk, retLen)
-			}
-		}()
 		return info.parser(input, start)
 	}
 
@@ -107,14 +89,6 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 		ok:     false,
 		length: 0,
 	})
-	if s.enter != nil {
-		s.enter(name, input, start)
-	}
-	defer func() {
-		if s.leave != nil {
-			s.leave(name, input, start, retOk, retLen)
-		}
-	}()
 	// find the right bound
 	lastOk := false
 	lastLen := 0

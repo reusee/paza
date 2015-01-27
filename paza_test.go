@@ -1,9 +1,6 @@
 package paza
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 type testCase struct {
 	text   []byte
@@ -286,56 +283,6 @@ func TestAST(t *testing.T) {
 		set.NamedConcat("quoted", set.NamedRune("left-quote", '('), "expr", set.NamedRune("right-quote", ')')),
 	))
 
-	type Node struct {
-		Name       string
-		Start      int
-		Len        int
-		Derivation []*Node
-	}
-	root := &Node{
-		Name: "__root_,",
-	}
-	current := root
-	var upward, fail func()
-	set.SetEnter(func(name string, input *Input, start int) {
-		node := &Node{
-			Name:  name,
-			Start: start,
-		}
-		current.Derivation = append(current.Derivation, node)
-		upNode := current
-		current = node
-		upUpward := upward
-		upFail := fail
-		upward = func() {
-			current = upNode
-			upward = upUpward
-			fail = upFail
-		}
-		fail = func() {
-			upNode.Derivation = upNode.Derivation[:len(upNode.Derivation)-1]
-			upward()
-		}
-	})
-	set.SetLeave(func(name string, input *Input, start int, ok bool, length int) {
-		if !ok {
-			fail()
-			return
-		}
-		current.Len = length
-		upward()
-	})
-	var dump func([]byte, *Node, int)
-	dump = func(text []byte, node *Node, level int) {
-		start := node.Start
-		end := node.Start + node.Len
-		pt("%s%q %s %d-%d\n", strings.Repeat("  ", level), text[start:end], node.Name, start, end)
-		for _, n := range node.Derivation {
-			dump(text, n, level+1)
-		}
-	}
-
 	text := []byte("1")
 	set.Call("expr", NewInput(text), 0)
-	dump(text, root, 0)
 }
