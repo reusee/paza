@@ -2,7 +2,7 @@ package paza
 
 import "testing"
 
-func BenchmarkExpr(b *testing.B) {
+func BenchmarkRecursive(b *testing.B) {
 	set := NewSet()
 	set.AddRec("expr", set.OrdChoice(
 		set.Concat(
@@ -12,10 +12,23 @@ func BenchmarkExpr(b *testing.B) {
 		),
 		set.Regex(`[a-z]+`),
 	))
-	input := NewInput([]byte("foo+bar-baz*qux/quux"))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		input := NewInput([]byte("foo+bar-baz*qux/quux"))
 		ok, _ := set.Call("expr", input, 0)
+		if !ok {
+			b.Fatal("fail")
+		}
+	}
+}
+
+func BenchmarkNonRecursive(b *testing.B) {
+	set := NewSet()
+	set.Add("foo", set.Regex(`foo`))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		input := NewInput([]byte(`foofoofoo`))
+		ok, _ := set.Call("foo", input, 0)
 		if !ok {
 			b.Fatal("fail")
 		}
