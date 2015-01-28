@@ -104,3 +104,40 @@ func TestParseTree(t *testing.T) {
 	}
 	testTree(t, set, cases)
 }
+
+func TestParseTree2(t *testing.T) {
+	set := NewSet()
+	set.Add("foo", set.OrdChoice(
+		set.NamedByteIn("digit", []byte("1234567890")),
+		set.NamedByteRange("alpha", 'a', 'z'),
+		set.NamedOrdChoice("punct",
+			set.NamedRune("!", '!'),
+			set.NamedRune("@", '@')),
+		set.NamedOneOrMore("dashes", set.NamedRune("dash", '-')),
+	))
+	cases := []treeTestCase{
+		{"1", "foo", &Node{"foo", 0, 1, []*Node{
+			{"digit", 0, 1, nil}}}},
+		{"z", "foo", &Node{"foo", 0, 1, []*Node{
+			{"alpha", 0, 1, nil}}}},
+		{"!", "foo", &Node{"foo", 0, 1, []*Node{
+			{"punct", 0, 1, []*Node{
+				{"!", 0, 1, nil}}}}}},
+		{"-", "foo", &Node{"foo", 0, 1, []*Node{
+			{"dashes", 0, 1, []*Node{
+				{"dash", 0, 1, nil},
+			}}}}},
+		{"--", "foo", &Node{"foo", 0, 2, []*Node{
+			{"dashes", 0, 2, []*Node{
+				{"dash", 0, 1, nil},
+				{"dash", 1, 1, nil},
+			}}}}},
+		{"---", "foo", &Node{"foo", 0, 3, []*Node{
+			{"dashes", 0, 3, []*Node{
+				{"dash", 0, 1, nil},
+				{"dash", 1, 1, nil},
+				{"dash", 2, 1, nil},
+			}}}}},
+	}
+	testTree(t, set, cases)
+}
