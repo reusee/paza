@@ -141,40 +141,7 @@ func (s *Set) NamedOrdChoice(name string, parsers ...interface{}) string {
 	return name
 }
 
-func (s *Set) OneOrMore(parser interface{}) Parser {
-	name := s.getNames(parser)[0]
-	return func(input *Input, start int) (bool, int, *Node) {
-		index := start
-		var subs []*Node
-		ok, l, node := s.Call(name, input, index)
-		if !ok {
-			return false, 0, nil
-		}
-		index += l
-		subs = append(subs, node)
-		for {
-			ok, l, node = s.Call(name, input, index)
-			if ok {
-				index += l
-				subs = append(subs, node)
-			} else {
-				break
-			}
-		}
-		return true, index - start, &Node{
-			Start: start,
-			Len:   index - start,
-			Subs:  subs,
-		}
-	}
-}
-
-func (s *Set) NamedOneOrMore(name string, parser interface{}) string {
-	s.Add(name, s.OneOrMore(parser))
-	return name
-}
-
-func (s *Set) ZeroOrMore(parser interface{}) Parser {
+func (s *Set) Repeat(lowerBound, upperBound int, parser interface{}) Parser {
 	name := s.getNames(parser)[0]
 	return func(input *Input, start int) (bool, int, *Node) {
 		index := start
@@ -184,9 +151,15 @@ func (s *Set) ZeroOrMore(parser interface{}) Parser {
 			if ok {
 				index += l
 				subs = append(subs, node)
+				if upperBound > 0 && len(subs) >= upperBound {
+					break
+				}
 			} else {
 				break
 			}
+		}
+		if len(subs) < lowerBound {
+			return false, 0, nil
 		}
 		return true, index - start, &Node{
 			Start: start,
@@ -196,7 +169,25 @@ func (s *Set) ZeroOrMore(parser interface{}) Parser {
 	}
 }
 
-func (s *Set) NamedZeroOrMore(name string, parser interface{}) string {
+func (s *Set) NamedRepeat(name string, lowerBound, upperBound int, parser interface{}) string {
+	s.Add(name, s.Repeat(lowerBound, upperBound, parser))
+	return name
+}
+
+func (s *Set) OneOrMore(parser interface{}) Parser {
+	return s.Repeat(1, -1, parser)
+}
+
+func (s *Set) NamedOneOrMore(name string, parser interface{}) string {
 	s.Add(name, s.OneOrMore(parser))
+	return name
+}
+
+func (s *Set) ZeroOrMore(parser interface{}) Parser {
+	return s.Repeat(0, -1, parser)
+}
+
+func (s *Set) NamedZeroOrMore(name string, parser interface{}) string {
+	s.Add(name, s.ZeroOrMore(parser))
 	return name
 }
