@@ -191,3 +191,23 @@ func (s *Set) NamedZeroOrMore(name string, parser interface{}) string {
 	s.Add(name, s.ZeroOrMore(parser))
 	return name
 }
+
+func (s *Set) Predicate(parser interface{}) Parser {
+	name := s.getNames(parser)[0]
+	return func(input *Input, start int) (bool, int, *Node) {
+		if ok, _, _ := s.Call(name, input, start); ok {
+			return true, 0, nil
+		}
+		return false, 0, nil
+	}
+}
+
+func (s *Set) NotPredicate(parser interface{}) Parser {
+	name := s.getNames(parser)[0]
+	return func(input *Input, start int) (bool, int, *Node) {
+		if ok, _, _ := s.Call(name, input, start); !ok {
+			return true, 0, nil
+		}
+		return false, 0, nil
+	}
+}
