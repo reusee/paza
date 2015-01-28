@@ -1,6 +1,9 @@
 package paza
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 type treeTestCase struct {
 	Text string
@@ -17,9 +20,9 @@ func testTree(t *testing.T, set *Set, cases []treeTestCase) {
 		}
 		if !node.Equal(c.Node) {
 			pt("== expected ==\n")
-			c.Node.Dump(input)
+			c.Node.Dump(os.Stdout, input)
 			pt("== return ==\n")
-			node.Dump(input)
+			node.Dump(os.Stdout, input)
 			t.Fatalf("tree not match")
 		}
 	}

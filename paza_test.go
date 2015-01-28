@@ -1,6 +1,9 @@
 package paza
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
 type testCase struct {
 	text   []byte
@@ -259,4 +262,51 @@ func TestOneOrMore(t *testing.T) {
 		{[]byte("aaabb"), "foo", true, 3},
 	}
 	test(t, set, cases)
+}
+
+func TestDump(t *testing.T) {
+	buf := new(bytes.Buffer)
+	input := NewInput([]byte("foo"))
+	node := &Node{"name", 0, 3, []*Node{
+		{"sub1", 0, 1, nil},
+		{"sub2", 1, 1, nil},
+		{"sub3", 2, 1, nil},
+	}}
+	node.Dump(buf, input)
+	if !bytes.Equal(buf.Bytes(), []byte(`"foo" name 0-3
+  "f" sub1 0-1
+  "o" sub2 1-2
+  "o" sub3 2-3
+`)) {
+		t.Fatal("not equal")
+	}
+}
+
+func TestEqual(t *testing.T) {
+	node := &Node{"name", 0, 3, []*Node{
+		{"sub1", 0, 1, nil},
+		{"sub2", 1, 1, nil},
+		{"sub3", 2, 1, nil},
+	}}
+	if node.Equal(&Node{"foo", 0, 3, nil}) {
+		t.Fatal("name")
+	}
+	if node.Equal(&Node{"name", 1, 3, nil}) {
+		t.Fatal("start")
+	}
+	if node.Equal(&Node{"name", 0, 2, nil}) {
+		t.Fatal("len")
+	}
+	if node.Equal(&Node{"name", 0, 3, []*Node{
+		{"sub1", 2, 1, nil},
+	}}) {
+		t.Fatal("sub len")
+	}
+	if node.Equal(&Node{"name", 0, 3, []*Node{
+		{"sub1", 0, 1, nil},
+		{"sub2", 1, 1, nil},
+		{"sub8", 2, 1, nil},
+	}}) {
+		t.Fatal("sub")
+	}
 }

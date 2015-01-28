@@ -2,6 +2,7 @@ package paza
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -147,17 +148,17 @@ func (s *Set) getNames(parsers []interface{}) (ret []string) {
 	return
 }
 
-func (n *Node) dump(input *Input, level int) {
+func (n *Node) dump(writer io.Writer, input *Input, level int) {
 	start := n.Start
 	end := n.Start + n.Len
-	pt("%s%q %s %d-%d\n", strings.Repeat("  ", level), input.Text[start:end], n.Name, start, end)
+	fmt.Fprintf(writer, "%s%q %s %d-%d\n", strings.Repeat("  ", level), input.Text[start:end], n.Name, start, end)
 	for _, sub := range n.Subs {
-		sub.dump(input, level+1)
+		sub.dump(writer, input, level+1)
 	}
 }
 
-func (n *Node) Dump(input *Input) {
-	n.dump(input, 0)
+func (n *Node) Dump(writer io.Writer, input *Input) {
+	n.dump(writer, input, 0)
 }
 
 func (n *Node) Equal(n2 *Node) bool {
