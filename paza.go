@@ -12,13 +12,8 @@ var (
 	pt = fmt.Printf
 )
 
-type parserInfo struct {
-	parser    Parser
-	recursive bool
-}
-
 type Set struct {
-	parsers map[string]parserInfo
+	parsers map[string]Parser
 	serial  uint64
 }
 
@@ -52,23 +47,19 @@ func NewInput(text []byte) *Input {
 
 func NewSet() *Set {
 	return &Set{
-		parsers: make(map[string]parserInfo),
+		parsers: make(map[string]Parser),
 	}
 }
 
 func (s *Set) Add(name string, parser Parser) {
-	s.parsers[name] = parserInfo{parser, false}
-}
-
-func (s *Set) AddRec(name string, parser Parser) {
-	s.parsers[name] = parserInfo{parser, true}
+	s.parsers[name] = parser
 }
 
 func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int, retNode *Node) {
 	if start >= len(input.Text) {
 		return false, 0, nil
 	}
-	info, ok := s.parsers[name]
+	parser, ok := s.parsers[name]
 	if !ok {
 		panic("parser not found: " + name)
 	}
@@ -78,11 +69,6 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 			retNode.Name = name
 		}
 	}()
-
-	// non recursive parser
-	if !info.recursive {
-		return info.parser(input, start)
-	}
 
 	// search stack
 	for i := len(input.stack) - 1; i >= 0; i-- {
@@ -105,7 +91,7 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 	var lastNode *Node
 	stackSize := len(input.stack) // save stack size
 	for {
-		ok, l, node := info.parser(input, start)
+		ok, l, node := parser(input, start)
 		input.stack = input.stack[:stackSize] // unwind stack
 		if !ok {
 			return false, 0, nil

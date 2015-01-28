@@ -35,12 +35,12 @@ func TestParseTree(t *testing.T) {
 		factor = [0-9]+ | '(' expr ')'
 	*/
 	set := NewSet()
-	set.AddRec("expr", set.OrdChoice(
+	set.Add("expr", set.OrdChoice(
 		set.NamedConcat("plus-expr", "expr", set.NamedRune("plus-op", '+'), "term"),
 		set.NamedConcat("minus-expr", "expr", set.NamedRune("minus-op", '-'), "term"),
 		"term",
 	))
-	set.AddRec("term", set.OrdChoice(
+	set.Add("term", set.OrdChoice(
 		set.NamedConcat("mul-expr", "term", set.NamedRune("mul-op", '*'), "factor"),
 		set.NamedConcat("div-expr", "term", set.NamedRune("div-op", '/'), "factor"),
 		"factor",

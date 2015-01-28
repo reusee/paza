@@ -26,7 +26,7 @@ func TestAll(t *testing.T) {
 	set := NewSet()
 	set.Add("a", set.Regex(`a`))
 	set.Add("+", set.Regex(`\+`))
-	set.AddRec("expr", set.OrdChoice(set.Concat("expr", "+", "a"), "a"))
+	set.Add("expr", set.OrdChoice(set.Concat("expr", "+", "a"), "a"))
 
 	cases := []testCase{
 		{[]byte(""), "a", false, 0},
@@ -55,12 +55,12 @@ func TestCalc(t *testing.T) {
 		factor = [0-9]+ | '(' expr ')'
 	*/
 	set := NewSet()
-	set.AddRec("expr", set.OrdChoice(
+	set.Add("expr", set.OrdChoice(
 		set.Concat("expr", set.Rune('+'), "term"),
 		set.Concat("expr", set.Rune('-'), "term"),
 		"term",
 	))
-	set.AddRec("term", set.OrdChoice(
+	set.Add("term", set.OrdChoice(
 		set.Concat("term", set.Rune('*'), "factor"),
 		set.Concat("term", set.Rune('/'), "factor"),
 		"factor",
@@ -95,11 +95,11 @@ func TestRegex(t *testing.T) {
 		<elementary-RE>	::=	"(" <RE> ")" | "." | "$" | [a-zA-Z0-9]
 	*/
 	set := NewSet()
-	set.AddRec("re", set.OrdChoice(
+	set.Add("re", set.OrdChoice(
 		set.Concat("re", set.Rune('|'), "simple-re"),
 		"simple-re",
 	))
-	set.AddRec("simple-re", set.OrdChoice(
+	set.Add("simple-re", set.OrdChoice(
 		set.Concat("simple-re", "basic-re"),
 		"basic-re",
 	))
@@ -136,11 +136,11 @@ func TestIndirect(t *testing.T) {
 		P = P(n) | L
 	*/
 	set := NewSet()
-	set.AddRec("L", set.OrdChoice(
+	set.Add("L", set.OrdChoice(
 		set.Concat("P", set.Rune('.'), set.Rune('x')),
 		set.Rune('x'),
 	))
-	set.AddRec("P", set.OrdChoice(
+	set.Add("P", set.OrdChoice(
 		set.Concat("P", set.Rune('('), set.Rune('n'), set.Rune(')')),
 		"L",
 	))
@@ -159,15 +159,15 @@ func TestIndirect2(t *testing.T) {
 		C = Ac | f
 	*/
 	set := NewSet()
-	set.AddRec("A", set.OrdChoice(
+	set.Add("A", set.OrdChoice(
 		set.Concat("B", set.Rune('a')),
 		set.Rune('d'),
 	))
-	set.AddRec("B", set.OrdChoice(
+	set.Add("B", set.OrdChoice(
 		set.Concat("C", set.Rune('b')),
 		set.Rune('e'),
 	))
-	set.AddRec("C", set.OrdChoice(
+	set.Add("C", set.OrdChoice(
 		set.Concat("A", set.Rune('c')),
 		set.Rune('f'),
 	))

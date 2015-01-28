@@ -4,7 +4,7 @@ import "testing"
 
 func BenchmarkRecursive(b *testing.B) {
 	set := NewSet()
-	set.AddRec("expr", set.OrdChoice(
+	set.Add("expr", set.OrdChoice(
 		set.Concat(
 			"expr",
 			set.Regex(`[\+\-\*/]`),
