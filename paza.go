@@ -118,7 +118,7 @@ func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int
 
 }
 
-func (s *Set) getNames(parsers []interface{}) (ret []string) {
+func (s *Set) getNames(parsers ...interface{}) (ret []string) {
 	for _, parser := range parsers {
 		switch parser := parser.(type) {
 		case string:

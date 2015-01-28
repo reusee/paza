@@ -83,7 +83,7 @@ func (s *Set) NamedByteRange(name string, left, right byte) string {
 }
 
 func (s *Set) Concat(parsers ...interface{}) Parser {
-	names := s.getNames(parsers)
+	names := s.getNames(parsers...)
 	return func(input *Input, start int) (bool, int, *Node) {
 		index := start
 		var subs []*Node
@@ -109,7 +109,7 @@ func (s *Set) NamedConcat(name string, parsers ...interface{}) string {
 }
 
 func (s *Set) OrdChoice(parsers ...interface{}) Parser {
-	names := s.getNames(parsers)
+	names := s.getNames(parsers...)
 	return func(input *Input, start int) (bool, int, *Node) {
 		for _, name := range names {
 			if ok, l, node := s.Call(name, input, start); ok {
@@ -130,8 +130,7 @@ func (s *Set) NamedOrdChoice(name string, parsers ...interface{}) string {
 }
 
 func (s *Set) OneOrMore(parser interface{}) Parser {
-	names := s.getNames([]interface{}{parser})
-	name := names[0]
+	name := s.getNames(parser)[0]
 	return func(input *Input, start int) (bool, int, *Node) {
 		index := start
 		var subs []*Node
@@ -159,6 +158,33 @@ func (s *Set) OneOrMore(parser interface{}) Parser {
 }
 
 func (s *Set) NamedOneOrMore(name string, parser interface{}) string {
+	s.Add(name, s.OneOrMore(parser))
+	return name
+}
+
+func (s *Set) ZeroOrMore(parser interface{}) Parser {
+	name := s.getNames(parser)[0]
+	return func(input *Input, start int) (bool, int, *Node) {
+		index := start
+		var subs []*Node
+		for {
+			ok, l, node := s.Call(name, input, index)
+			if ok {
+				index += l
+				subs = append(subs, node)
+			} else {
+				break
+			}
+		}
+		return true, index - start, &Node{
+			Start: start,
+			Len:   index - start,
+			Subs:  subs,
+		}
+	}
+}
+
+func (s *Set) NamedZeroOrMore(name string, parser interface{}) string {
 	s.Add(name, s.OneOrMore(parser))
 	return name
 }

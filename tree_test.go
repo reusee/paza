@@ -117,6 +117,7 @@ func TestParseTree2(t *testing.T) {
 			set.NamedRune("!", '!'),
 			set.NamedRune("@", '@')),
 		set.NamedOneOrMore("dashes", set.NamedRune("dash", '-')),
+		set.NamedZeroOrMore("stars", set.NamedRune("star", '*')),
 	))
 	cases := []treeTestCase{
 		{"1", "foo", &Node{"foo", 0, 1, []*Node{
@@ -141,6 +142,9 @@ func TestParseTree2(t *testing.T) {
 				{"dash", 1, 1, nil},
 				{"dash", 2, 1, nil},
 			}}}}},
+		{"*", "foo", &Node{"foo", 0, 1, []*Node{
+			{"stars", 0, 1, []*Node{
+				{"star", 0, 1, nil}}}}}},
 	}
 	testTree(t, set, cases)
 }

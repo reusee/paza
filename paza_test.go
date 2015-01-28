@@ -17,6 +17,10 @@ func test(t *testing.T, set *Set, cases []testCase) {
 		input := NewInput(c.text)
 		ok, l, _ := set.Call(c.parser, input, 0)
 		if c.ok != ok || c.length != l {
+			pt("=== expected ===\n")
+			pt("%s %s %v %d\n", c.text, c.parser, c.ok, c.length)
+			pt("=== result ===\n")
+			pt("%v %d\n", ok, l)
 			t.Fatalf("%v", c)
 		}
 	}
@@ -255,6 +259,22 @@ func TestOneOrMore(t *testing.T) {
 		{[]byte(""), "foo", false, 0},
 		{[]byte("b"), "foo", false, 0},
 		{[]byte("bb"), "foo", false, 0},
+		{[]byte("a"), "foo", true, 1},
+		{[]byte("aa"), "foo", true, 2},
+		{[]byte("aaa"), "foo", true, 3},
+		{[]byte("aaab"), "foo", true, 3},
+		{[]byte("aaabb"), "foo", true, 3},
+	}
+	test(t, set, cases)
+}
+
+func TestZeroOrMore(t *testing.T) {
+	set := NewSet()
+	set.Add("foo", set.ZeroOrMore(set.Rune('a')))
+	cases := []testCase{
+		{[]byte(""), "foo", false, 0}, //TODO fix this?
+		{[]byte("b"), "foo", true, 0},
+		{[]byte("bb"), "foo", true, 0},
 		{[]byte("a"), "foo", true, 1},
 		{[]byte("aa"), "foo", true, 2},
 		{[]byte("aaa"), "foo", true, 3},
