@@ -260,33 +260,3 @@ func TestOneOrMore(t *testing.T) {
 	}
 	test(t, set, cases)
 }
-
-func TestAST(t *testing.T) {
-	/*
-		expr = expr (+ | -) term | term
-		term = term (* / /) factor | factor
-		factor = [0-9]+ | '(' expr ')'
-	*/
-	set := NewSet()
-	set.AddRec("expr", set.OrdChoice(
-		set.NamedConcat("plus-expr", "expr", set.NamedRune("plus-op", '+'), "term"),
-		set.NamedConcat("minus-expr", "expr", set.NamedRune("minus-op", '-'), "term"),
-		"term",
-	))
-	set.AddRec("term", set.OrdChoice(
-		set.NamedConcat("mul-expr", "term", set.NamedRune("mul-op", '*'), "factor"),
-		set.NamedConcat("div-expr", "term", set.NamedRune("div-op", '/'), "factor"),
-		"factor",
-	))
-	set.Add("factor", set.OrdChoice(
-		set.NamedRegex("digit", `[0-9]+`),
-		set.NamedConcat("quoted", set.NamedRune("left-quote", '('), "expr", set.NamedRune("right-quote", ')')),
-	))
-
-	input := NewInput([]byte("(1+1)"))
-	ok, l, node := set.Call("expr", input, 0)
-	if !ok || l != len(input.Text) {
-		t.Fatal("match fail")
-	}
-	node.dump(input, 0)
-}

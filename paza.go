@@ -155,3 +155,28 @@ func (n *Node) dump(input *Input, level int) {
 		sub.dump(input, level+1)
 	}
 }
+
+func (n *Node) Dump(input *Input) {
+	n.dump(input, 0)
+}
+
+func (n *Node) Equal(n2 *Node) bool {
+	if n.Name != n2.Name {
+		return false
+	}
+	if n.Start != n2.Start {
+		return false
+	}
+	if n.Len != n2.Len {
+		return false
+	}
+	if len(n.Subs) != len(n2.Subs) {
+		return false
+	}
+	for i, sub := range n.Subs {
+		if !sub.Equal(n2.Subs[i]) {
+			return false
+		}
+	}
+	return true
+}
