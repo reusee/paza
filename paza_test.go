@@ -272,7 +272,7 @@ func TestZeroOrMore(t *testing.T) {
 	set := NewSet()
 	set.Add("foo", set.ZeroOrMore(set.Rune('a')))
 	cases := []testCase{
-		{[]byte(""), "foo", false, 0}, //TODO fix this?
+		{[]byte(""), "foo", true, 0},
 		{[]byte("b"), "foo", true, 0},
 		{[]byte("bb"), "foo", true, 0},
 		{[]byte("a"), "foo", true, 1},

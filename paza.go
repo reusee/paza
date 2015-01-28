@@ -56,9 +56,6 @@ func (s *Set) Add(name string, parser Parser) {
 }
 
 func (s *Set) Call(name string, input *Input, start int) (retOk bool, retLen int, retNode *Node) {
-	if start >= len(input.Text) {
-		return false, 0, nil
-	}
 	parser, ok := s.parsers[name]
 	if !ok {
 		panic("parser not found: " + name)

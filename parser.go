@@ -8,6 +8,9 @@ import (
 func (s *Set) Regex(re string) Parser {
 	regex := regexp.MustCompile(re)
 	return func(input *Input, start int) (bool, int, *Node) {
+		if start >= len(input.Text) {
+			return false, 0, nil
+		}
 		if loc := regex.FindIndex(input.Text[start:]); loc != nil && loc[0] == 0 {
 			return true, loc[1], &Node{
 				Start: start,
@@ -25,6 +28,9 @@ func (s *Set) NamedRegex(name string, re string) string {
 
 func (s *Set) Rune(r rune) Parser {
 	return func(input *Input, start int) (bool, int, *Node) {
+		if start >= len(input.Text) {
+			return false, 0, nil
+		}
 		ru, l := utf8.DecodeRune(input.Text[start:])
 		if ru == utf8.RuneError {
 			panic("utf8 decode error")
@@ -46,6 +52,9 @@ func (s *Set) NamedRune(name string, r rune) string {
 
 func (s *Set) ByteIn(bs []byte) Parser {
 	return func(input *Input, start int) (bool, int, *Node) {
+		if start >= len(input.Text) {
+			return false, 0, nil
+		}
 		b := input.Text[start]
 		for _, bt := range bs {
 			if bt == b {
@@ -66,6 +75,9 @@ func (s *Set) NamedByteIn(name string, bs []byte) string {
 
 func (s *Set) ByteRange(left, right byte) Parser {
 	return func(input *Input, start int) (bool, int, *Node) {
+		if start >= len(input.Text) {
+			return false, 0, nil
+		}
 		b := input.Text[start]
 		if b >= left && b <= right {
 			return true, 1, &Node{
