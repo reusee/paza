@@ -395,3 +395,24 @@ func TestRepeat(t *testing.T) {
 	}
 	test(t, set, cases)
 }
+
+func TestPredicate(t *testing.T) {
+	set := NewSet()
+	set.Add("p", set.Concat(
+		set.Predicate(set.Rune('a')),
+		set.Regex(`.*bar`)))
+	set.Add("np", set.Concat(
+		set.NotPredicate(set.Rune('a')),
+		set.Regex(`.*bar`)))
+	cases := []testCase{
+		{[]byte("foobar"), "p", false, 0},
+		{[]byte("afoobar"), "p", true, 7},
+		{[]byte("aafoobar"), "p", true, 8},
+
+		{[]byte("afoobar"), "np", false, 0},
+		{[]byte("aafoobar"), "np", false, 0},
+		{[]byte("foobar"), "np", true, 6},
+		{[]byte("bazfoobar"), "np", true, 9},
+	}
+	test(t, set, cases)
+}
