@@ -227,29 +227,25 @@ func TestPanic(t *testing.T) {
 func TestByteIn(t *testing.T) {
 	set := NewSet()
 	set.Add("foo", set.ByteIn([]byte("qwerty")))
-	if ok, l, _ := set.Call("foo", NewInput([]byte("a")), 0); ok || l != 0 {
-		t.Fatal("fail")
+	cases := []testCase{
+		{[]byte(""), "foo", false, 0},
+		{[]byte("a"), "foo", false, 0},
+		{[]byte("q"), "foo", true, 1},
+		{[]byte("qa"), "foo", true, 1},
 	}
-	if ok, l, _ := set.Call("foo", NewInput([]byte("q")), 0); !ok || l != 1 {
-		t.Fatal("fail")
-	}
-	if ok, l, _ := set.Call("foo", NewInput([]byte("qa")), 0); !ok || l != 1 {
-		t.Fatal("fail")
-	}
+	test(t, set, cases)
 }
 
 func TestByteRange(t *testing.T) {
 	set := NewSet()
 	set.Add("foo", set.ByteRange('a', 'z'))
-	if ok, l, _ := set.Call("foo", NewInput([]byte("A")), 0); ok || l != 0 {
-		t.Fatal("fail")
+	cases := []testCase{
+		{[]byte(""), "foo", false, 0},
+		{[]byte("A"), "foo", false, 0},
+		{[]byte("a"), "foo", true, 1},
+		{[]byte("aA"), "foo", true, 1},
 	}
-	if ok, l, _ := set.Call("foo", NewInput([]byte("a")), 0); !ok || l != 1 {
-		t.Fatal("fail")
-	}
-	if ok, l, _ := set.Call("foo", NewInput([]byte("aA")), 0); !ok || l != 1 {
-		t.Fatal("fail")
-	}
+	test(t, set, cases)
 }
 
 func TestOneOrMore(t *testing.T) {
@@ -329,4 +325,73 @@ func TestEqual(t *testing.T) {
 	}}) {
 		t.Fatal("sub")
 	}
+}
+
+func TestRepeat(t *testing.T) {
+	set := NewSet()
+	set.Add("0+", set.Repeat(0, -1, set.Rune('a')))
+	set.Add("0-1", set.Repeat(0, 1, set.Rune('a')))
+	set.Add("0-2", set.Repeat(0, 2, set.Rune('a')))
+	set.Add("1+", set.Repeat(1, -1, set.Rune('a')))
+	set.Add("1-1", set.Repeat(1, 1, set.Rune('a')))
+	set.Add("1-2", set.Repeat(1, 2, set.Rune('a')))
+	set.Add("2+", set.Repeat(2, -1, set.Rune('a')))
+	set.Add("2-2", set.Repeat(2, 2, set.Rune('a')))
+	set.Add("2-3", set.Repeat(2, 3, set.Rune('a')))
+	cases := []testCase{
+		{[]byte(""), "0+", true, 0},
+		{[]byte("a"), "0+", true, 1},
+		{[]byte("aa"), "0+", true, 2},
+		{[]byte("b"), "0+", true, 0},
+		{[]byte("bb"), "0+", true, 0},
+
+		{[]byte(""), "0-1", true, 0},
+		{[]byte("a"), "0-1", true, 1},
+		{[]byte("aa"), "0-1", true, 1},
+		{[]byte("ab"), "0-1", true, 1},
+
+		{[]byte(""), "0-2", true, 0},
+		{[]byte("a"), "0-2", true, 1},
+		{[]byte("aa"), "0-2", true, 2},
+		{[]byte("aaa"), "0-2", true, 2},
+		{[]byte("baa"), "0-2", true, 0},
+
+		{[]byte(""), "1+", false, 0},
+		{[]byte("b"), "1+", false, 0},
+		{[]byte("a"), "1+", true, 1},
+		{[]byte("aa"), "1+", true, 2},
+		{[]byte("aaa"), "1+", true, 3},
+
+		{[]byte(""), "1-1", false, 0},
+		{[]byte("b"), "1-1", false, 0},
+		{[]byte("a"), "1-1", true, 1},
+		{[]byte("aa"), "1-1", true, 1},
+		{[]byte("ab"), "1-1", true, 1},
+
+		{[]byte(""), "1-2", false, 0},
+		{[]byte("b"), "1-2", false, 0},
+		{[]byte("a"), "1-2", true, 1},
+		{[]byte("aa"), "1-2", true, 2},
+		{[]byte("aaa"), "1-2", true, 2},
+
+		{[]byte(""), "2+", false, 0},
+		{[]byte("b"), "2+", false, 0},
+		{[]byte("a"), "2+", false, 0},
+		{[]byte("aa"), "2+", true, 2},
+		{[]byte("aaa"), "2+", true, 3},
+
+		{[]byte(""), "2-2", false, 0},
+		{[]byte("b"), "2-2", false, 0},
+		{[]byte("a"), "2-2", false, 0},
+		{[]byte("aa"), "2-2", true, 2},
+		{[]byte("aaa"), "2-2", true, 2},
+
+		{[]byte(""), "2-3", false, 0},
+		{[]byte("b"), "2-3", false, 0},
+		{[]byte("a"), "2-3", false, 0},
+		{[]byte("aa"), "2-3", true, 2},
+		{[]byte("aaa"), "2-3", true, 3},
+		{[]byte("aaaa"), "2-3", true, 3},
+	}
+	test(t, set, cases)
 }
