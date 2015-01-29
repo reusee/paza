@@ -9,7 +9,7 @@ import (
 
 func main() {
 	set := paza.NewSet()
-	set.AddRec("expr", set.OrdChoice(
+	set.Add("expr", set.OrdChoice(
 		set.Concat(
 			"expr",
 			set.ByteIn([]byte("+-*/")),
@@ -28,7 +28,7 @@ func main() {
 	}
 	for i := 0; i < n; i++ {
 		input := paza.NewInput([]byte("foo+bar-baz*qux/quux"))
-		ok, l := set.Call("expr", input, 0)
+		ok, l, _ := set.Call("expr", input, 0)
 		if !ok || l != 20 {
 			panic("fixme")
 		}
