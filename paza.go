@@ -34,15 +34,16 @@ type stackEntry struct {
 	node   *Node
 }
 
-type Input struct {
-	Text  []byte
-	stack []stackEntry
+type input interface {
+	At(i int) []byte
+	BytesFrom(i int) []byte
+	BytesRange(int, int) []byte
+	Len() int
 }
 
-func NewInput(text []byte) *Input {
-	return &Input{
-		Text: text,
-	}
+type Input struct {
+	input
+	stack []stackEntry
 }
 
 func NewSet() *Set {
@@ -134,7 +135,7 @@ func (s *Set) getNames(parsers ...interface{}) (ret []string) {
 func (n *Node) dump(writer io.Writer, input *Input, level int) {
 	start := n.Start
 	end := n.Start + n.Len
-	fmt.Fprintf(writer, "%s%q %s %d-%d\n", strings.Repeat("  ", level), input.Text[start:end], n.Name, start, end)
+	fmt.Fprintf(writer, "%s%q %s %d-%d\n", strings.Repeat("  ", level), input.BytesRange(start, end), n.Name, start, end)
 	for _, sub := range n.Subs {
 		sub.dump(writer, input, level+1)
 	}

@@ -13,7 +13,7 @@ type treeTestCase struct {
 
 func testTree(t *testing.T, set *Set, cases []treeTestCase) {
 	for _, c := range cases {
-		input := NewInput([]byte(c.Text))
+		input := NewBytesInput([]byte(c.Text))
 		ok, l, node := set.Call(c.Name, input, 0)
 		if !ok || l != len(c.Text) {
 			t.Fatalf("match fail: %v %d %v", ok, l, c)

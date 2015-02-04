@@ -14,7 +14,7 @@ type testCase struct {
 
 func test(t *testing.T, set *Set, cases []testCase) {
 	for _, c := range cases {
-		input := NewInput(c.text)
+		input := NewBytesInput(c.text)
 		ok, l, _ := set.Call(c.parser, input, 0)
 		if c.ok != ok || c.length != l {
 			pt("=== expected ===\n")
@@ -201,7 +201,7 @@ func TestPanic(t *testing.T) {
 				t.Fatal("should panic")
 			}
 		}()
-		set.Call("foo", NewInput([]byte("FOO")), 0)
+		set.Call("foo", NewBytesInput([]byte("FOO")), 0)
 	}()
 
 	func() {
@@ -220,7 +220,7 @@ func TestPanic(t *testing.T) {
 				t.Fatal("should panic")
 			}
 		}()
-		set.Call("rune", NewInput([]byte("白")[1:]), 0)
+		set.Call("rune", NewBytesInput([]byte("白")[1:]), 0)
 	}()
 }
 
@@ -282,7 +282,7 @@ func TestZeroOrMore(t *testing.T) {
 
 func TestDump(t *testing.T) {
 	buf := new(bytes.Buffer)
-	input := NewInput([]byte("foo"))
+	input := NewBytesInput([]byte("foo"))
 	node := &Node{"name", 0, 3, []*Node{
 		{"sub1", 0, 1, nil},
 		{"sub2", 1, 1, nil},
