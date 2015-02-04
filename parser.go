@@ -5,7 +5,7 @@ import (
 	"unicode/utf8"
 )
 
-func (s *Set) SliceRegex(re string) Parser {
+func (s *Set) Regex(re string) Parser {
 	regex := regexp.MustCompile(re)
 	return func(input *Input, start int) (bool, int, *Node) {
 		if start >= input.Len() {
@@ -21,12 +21,12 @@ func (s *Set) SliceRegex(re string) Parser {
 	}
 }
 
-func (s *Set) SliceNamedRegex(name string, re string) string {
-	s.Add(name, s.SliceRegex(re))
+func (s *Set) NamedRegex(name string, re string) string {
+	s.Add(name, s.Regex(re))
 	return name
 }
 
-func (s *Set) SliceRune(r rune) Parser {
+func (s *Set) Rune(r rune) Parser {
 	return func(input *Input, start int) (bool, int, *Node) {
 		if start >= input.Len() {
 			return false, 0, nil
@@ -45,8 +45,8 @@ func (s *Set) SliceRune(r rune) Parser {
 	}
 }
 
-func (s *Set) SliceNamedRune(name string, r rune) string {
-	s.Add(name, s.SliceRune(r))
+func (s *Set) NamedRune(name string, r rune) string {
+	s.Add(name, s.Rune(r))
 	return name
 }
 
