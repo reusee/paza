@@ -20,14 +20,11 @@ func (i *BytesInput) At(index int) []byte {
 	return []byte{i.Text[index]}
 }
 
-func (i *BytesInput) BytesSlice(start, end int) []byte {
-	if start < 0 && end < 0 {
-		return i.Text[:]
-	} else if start < 0 {
-		return i.Text[:end]
-	} else if end < 0 {
-		return i.Text[start:]
-	}
+func (i *BytesInput) BytesFrom(index int) []byte {
+	return i.Text[index:]
+}
+
+func (i *BytesInput) BytesRange(start, end int) []byte {
 	return i.Text[start:end]
 }
 
