@@ -11,7 +11,7 @@ func (s *Set) Regex(re string) Parser {
 		if start >= input.Len() {
 			return false, 0, nil
 		}
-		if loc := regex.FindIndex(input.BytesFrom(start)); loc != nil && loc[0] == 0 {
+		if loc := regex.FindIndex(input.BytesSlice(start, -1)); loc != nil && loc[0] == 0 {
 			return true, loc[1], &Node{
 				Start: start,
 				Len:   loc[1],
@@ -31,7 +31,7 @@ func (s *Set) Rune(r rune) Parser {
 		if start >= input.Len() {
 			return false, 0, nil
 		}
-		ru, l := utf8.DecodeRune(input.BytesFrom(start))
+		ru, l := utf8.DecodeRune(input.BytesSlice(start, -1))
 		if ru == utf8.RuneError {
 			panic("utf8 decode error")
 		}
