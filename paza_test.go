@@ -28,8 +28,8 @@ func test(t *testing.T, set *Set, cases []testCase) {
 
 func TestAll(t *testing.T) {
 	set := NewSet()
-	set.Add("a", set.Regex(`a`))
-	set.Add("+", set.Regex(`\+`))
+	set.Add("a", set.SliceRegex(`a`))
+	set.Add("+", set.SliceRegex(`\+`))
 	set.Add("expr", set.OrdChoice(set.Concat("expr", "+", "a"), "a"))
 
 	cases := []testCase{
@@ -60,18 +60,18 @@ func TestCalc(t *testing.T) {
 	*/
 	set := NewSet()
 	set.Add("expr", set.OrdChoice(
-		set.Concat("expr", set.Rune('+'), "term"),
-		set.Concat("expr", set.Rune('-'), "term"),
+		set.Concat("expr", set.SliceRune('+'), "term"),
+		set.Concat("expr", set.SliceRune('-'), "term"),
 		"term",
 	))
 	set.Add("term", set.OrdChoice(
-		set.Concat("term", set.Rune('*'), "factor"),
-		set.Concat("term", set.Rune('/'), "factor"),
+		set.Concat("term", set.SliceRune('*'), "factor"),
+		set.Concat("term", set.SliceRune('/'), "factor"),
 		"factor",
 	))
 	set.Add("factor", set.OrdChoice(
-		set.Regex(`[0-9]+`),
-		set.Concat(set.Rune('('), "expr", set.Rune(')')),
+		set.SliceRegex(`[0-9]+`),
+		set.Concat(set.SliceRune('('), "expr", set.SliceRune(')')),
 	))
 
 	cases := []testCase{
@@ -100,7 +100,7 @@ func TestRegex(t *testing.T) {
 	*/
 	set := NewSet()
 	set.Add("re", set.OrdChoice(
-		set.Concat("re", set.Rune('|'), "simple-re"),
+		set.Concat("re", set.SliceRune('|'), "simple-re"),
 		"simple-re",
 	))
 	set.Add("simple-re", set.OrdChoice(
@@ -108,15 +108,15 @@ func TestRegex(t *testing.T) {
 		"basic-re",
 	))
 	set.Add("basic-re", set.OrdChoice(
-		set.Concat("elementary-re", set.Rune('*')),
-		set.Concat("elementary-re", set.Rune('+')),
+		set.Concat("elementary-re", set.SliceRune('*')),
+		set.Concat("elementary-re", set.SliceRune('+')),
 		"elementary-re",
 	))
 	set.Add("elementary-re", set.OrdChoice(
-		set.Concat(set.Rune('('), "re", set.Rune(')')),
-		set.Rune('.'),
-		set.Rune('$'),
-		set.Regex(`[a-zA-Z0-9]`),
+		set.Concat(set.SliceRune('('), "re", set.SliceRune(')')),
+		set.SliceRune('.'),
+		set.SliceRune('$'),
+		set.SliceRegex(`[a-zA-Z0-9]`),
 	))
 
 	cases := []testCase{
@@ -141,11 +141,11 @@ func TestIndirect(t *testing.T) {
 	*/
 	set := NewSet()
 	set.Add("L", set.OrdChoice(
-		set.Concat("P", set.Rune('.'), set.Rune('x')),
-		set.Rune('x'),
+		set.Concat("P", set.SliceRune('.'), set.SliceRune('x')),
+		set.SliceRune('x'),
 	))
 	set.Add("P", set.OrdChoice(
-		set.Concat("P", set.Rune('('), set.Rune('n'), set.Rune(')')),
+		set.Concat("P", set.SliceRune('('), set.SliceRune('n'), set.SliceRune(')')),
 		"L",
 	))
 
@@ -164,16 +164,16 @@ func TestIndirect2(t *testing.T) {
 	*/
 	set := NewSet()
 	set.Add("A", set.OrdChoice(
-		set.Concat("B", set.Rune('a')),
-		set.Rune('d'),
+		set.Concat("B", set.SliceRune('a')),
+		set.SliceRune('d'),
 	))
 	set.Add("B", set.OrdChoice(
-		set.Concat("C", set.Rune('b')),
-		set.Rune('e'),
+		set.Concat("C", set.SliceRune('b')),
+		set.SliceRune('e'),
 	))
 	set.Add("C", set.OrdChoice(
-		set.Concat("A", set.Rune('c')),
-		set.Rune('f'),
+		set.Concat("A", set.SliceRune('c')),
+		set.SliceRune('f'),
 	))
 
 	cases := []testCase{
@@ -213,7 +213,7 @@ func TestPanic(t *testing.T) {
 		set.OrdChoice(42)
 	}()
 
-	set.Add("rune", set.Rune('a'))
+	set.Add("rune", set.SliceRune('a'))
 	func() {
 		defer func() {
 			if p := recover(); p == nil || p.(string) != "utf8 decode error" {
@@ -250,7 +250,7 @@ func TestByteRange(t *testing.T) {
 
 func TestOneOrMore(t *testing.T) {
 	set := NewSet()
-	set.Add("foo", set.OneOrMore(set.Rune('a')))
+	set.Add("foo", set.OneOrMore(set.SliceRune('a')))
 	cases := []testCase{
 		{[]byte(""), "foo", false, 0},
 		{[]byte("b"), "foo", false, 0},
@@ -266,7 +266,7 @@ func TestOneOrMore(t *testing.T) {
 
 func TestZeroOrMore(t *testing.T) {
 	set := NewSet()
-	set.Add("foo", set.ZeroOrMore(set.Rune('a')))
+	set.Add("foo", set.ZeroOrMore(set.SliceRune('a')))
 	cases := []testCase{
 		{[]byte(""), "foo", true, 0},
 		{[]byte("b"), "foo", true, 0},
@@ -329,15 +329,15 @@ func TestEqual(t *testing.T) {
 
 func TestRepeat(t *testing.T) {
 	set := NewSet()
-	set.Add("0+", set.Repeat(0, -1, set.Rune('a')))
-	set.Add("0-1", set.Repeat(0, 1, set.Rune('a')))
-	set.Add("0-2", set.Repeat(0, 2, set.Rune('a')))
-	set.Add("1+", set.Repeat(1, -1, set.Rune('a')))
-	set.Add("1-1", set.Repeat(1, 1, set.Rune('a')))
-	set.Add("1-2", set.Repeat(1, 2, set.Rune('a')))
-	set.Add("2+", set.Repeat(2, -1, set.Rune('a')))
-	set.Add("2-2", set.Repeat(2, 2, set.Rune('a')))
-	set.Add("2-3", set.Repeat(2, 3, set.Rune('a')))
+	set.Add("0+", set.Repeat(0, -1, set.SliceRune('a')))
+	set.Add("0-1", set.Repeat(0, 1, set.SliceRune('a')))
+	set.Add("0-2", set.Repeat(0, 2, set.SliceRune('a')))
+	set.Add("1+", set.Repeat(1, -1, set.SliceRune('a')))
+	set.Add("1-1", set.Repeat(1, 1, set.SliceRune('a')))
+	set.Add("1-2", set.Repeat(1, 2, set.SliceRune('a')))
+	set.Add("2+", set.Repeat(2, -1, set.SliceRune('a')))
+	set.Add("2-2", set.Repeat(2, 2, set.SliceRune('a')))
+	set.Add("2-3", set.Repeat(2, 3, set.SliceRune('a')))
 	cases := []testCase{
 		{[]byte(""), "0+", true, 0},
 		{[]byte("a"), "0+", true, 1},
@@ -399,11 +399,11 @@ func TestRepeat(t *testing.T) {
 func TestPredicate(t *testing.T) {
 	set := NewSet()
 	set.Add("p", set.Concat(
-		set.Predicate(set.Rune('a')),
-		set.Regex(`.*bar`)))
+		set.Predicate(set.SliceRune('a')),
+		set.SliceRegex(`.*bar`)))
 	set.Add("np", set.Concat(
-		set.NotPredicate(set.Rune('a')),
-		set.Regex(`.*bar`)))
+		set.NotPredicate(set.SliceRune('a')),
+		set.SliceRegex(`.*bar`)))
 	cases := []testCase{
 		{[]byte("foobar"), "p", false, 0},
 		{[]byte("afoobar"), "p", true, 7},

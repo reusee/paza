@@ -36,18 +36,18 @@ func TestParseTree(t *testing.T) {
 	*/
 	set := NewSet()
 	set.Add("expr", set.OrdChoice(
-		set.NamedConcat("plus-expr", "expr", set.NamedRune("plus-op", '+'), "term"),
-		set.NamedConcat("minus-expr", "expr", set.NamedRune("minus-op", '-'), "term"),
+		set.NamedConcat("plus-expr", "expr", set.SliceNamedRune("plus-op", '+'), "term"),
+		set.NamedConcat("minus-expr", "expr", set.SliceNamedRune("minus-op", '-'), "term"),
 		"term",
 	))
 	set.Add("term", set.OrdChoice(
-		set.NamedConcat("mul-expr", "term", set.NamedRune("mul-op", '*'), "factor"),
-		set.NamedConcat("div-expr", "term", set.NamedRune("div-op", '/'), "factor"),
+		set.NamedConcat("mul-expr", "term", set.SliceNamedRune("mul-op", '*'), "factor"),
+		set.NamedConcat("div-expr", "term", set.SliceNamedRune("div-op", '/'), "factor"),
 		"factor",
 	))
 	set.Add("factor", set.OrdChoice(
-		set.NamedRegex("digit", `[0-9]+`),
-		set.NamedConcat("quoted", set.NamedRune("left-quote", '('), "expr", set.NamedRune("right-quote", ')')),
+		set.SliceNamedRegex("digit", `[0-9]+`),
+		set.NamedConcat("quoted", set.SliceNamedRune("left-quote", '('), "expr", set.SliceNamedRune("right-quote", ')')),
 	))
 
 	cases := []treeTestCase{
@@ -114,11 +114,11 @@ func TestParseTree2(t *testing.T) {
 		set.NamedByteIn("digit", []byte("1234567890")),
 		set.NamedByteRange("alpha", 'a', 'z'),
 		set.NamedOrdChoice("punct",
-			set.NamedRune("!", '!'),
-			set.NamedRune("@", '@')),
-		set.NamedOneOrMore("dashes", set.NamedRune("dash", '-')),
-		set.NamedRepeat("sharps", 1, -1, set.NamedRune("sharp", '#')),
-		set.NamedZeroOrMore("stars", set.NamedRune("star", '*')), // must be last
+			set.SliceNamedRune("!", '!'),
+			set.SliceNamedRune("@", '@')),
+		set.NamedOneOrMore("dashes", set.SliceNamedRune("dash", '-')),
+		set.NamedRepeat("sharps", 1, -1, set.SliceNamedRune("sharp", '#')),
+		set.NamedZeroOrMore("stars", set.SliceNamedRune("star", '*')), // must be last
 	))
 	cases := []treeTestCase{
 		{"1", "foo", &Node{"foo", 0, 1, []*Node{
